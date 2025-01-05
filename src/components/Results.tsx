@@ -11,6 +11,14 @@ export function Results() {
     queryKey: ['model_results'],
     queryFn: async () => {
       console.log('Fetching results...');
+      
+      // Get the current session to check authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No active session found');
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('model_results')
         .select('*')
@@ -18,7 +26,11 @@ export function Results() {
         .limit(1)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching results:', error);
+        throw error;
+      }
+      
       console.log('Fetched data:', data);
 
       if (!data) return null;
