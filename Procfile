@@ -1,1 +1,1 @@
-web: /usr/local/bin/python -m pip install -r requirements.txt && /usr/local/bin/python -m pip install gunicorn && /usr/local/bin/python -m gunicorn app:app --timeout 120
+web: /usr/local/bin/python app.py
