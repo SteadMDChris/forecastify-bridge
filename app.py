@@ -19,6 +19,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Log startup information
+logger.info("Starting Flask application")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Current working directory: {os.getcwd()}")
+logger.info(f"Environment variables: PORT={os.environ.get('PORT')}")
+
 app = Flask(__name__)
 
 @app.route('/health')
@@ -209,4 +215,4 @@ def process_file():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     logger.info(f"Starting Flask app on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)

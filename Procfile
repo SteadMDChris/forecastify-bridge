@@ -1,1 +1,1 @@
-web: /usr/local/bin/python app.py
+web: gunicorn app:app
