@@ -13,12 +13,27 @@ export const FileUpload = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
+      if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a CSV file",
+          variant: "destructive",
+        });
+        return;
+      }
       setFile(selectedFile);
     }
   };
 
   const processData = async () => {
-    if (!file) return;
+    if (!file) {
+      toast({
+        title: "No file selected",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsProcessing(true);
     try {
@@ -26,18 +41,30 @@ export const FileUpload = () => {
       
       // Get the current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      if (userError) {
+        throw new Error("Authentication error: " + userError.message);
+      }
       
       if (!user) {
         throw new Error("You must be logged in to upload files");
       }
 
+      // Create a sanitized filename
+      const timestamp = Date.now();
+      const sanitizedFileName = `${timestamp}-${file.name.replace(/[^\x00-\x7F]/g, '')}`;
+
       // First upload the file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('model-inputs')
-        .upload(`${Date.now()}-${file.name}`, file);
+        .upload(sanitizedFileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error("Failed to upload file: " + uploadError.message);
+      }
       
       console.log("File uploaded successfully:", uploadData.path);
 
@@ -48,13 +75,16 @@ export const FileUpload = () => {
           {
             input_file_path: uploadData.path,
             status: 'processing',
-            user_id: user.id // Include the user_id
+            user_id: user.id
           }
         ])
         .select()
         .single();
 
-      if (modelError) throw modelError;
+      if (modelError) {
+        console.error('Model result error:', modelError);
+        throw new Error("Failed to create model result: " + modelError.message);
+      }
       
       console.log("Created model_results record:", modelResult);
 
@@ -63,25 +93,33 @@ export const FileUpload = () => {
         body: { fileUrl: uploadData.path }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error("Failed to process file: " + error.message);
+      }
 
       console.log("Edge function response:", data);
 
       toast({
         title: "Success!",
-        description: "Data processed successfully",
+        description: "File uploaded and processing started",
       });
+
+      // Reset the file input
+      setFile(null);
+      if (event.target) {
+        event.target.value = '';
+      }
 
     } catch (error) {
       console.error('Error processing data:', error);
       toast({
         title: "Error",
-        description: "Failed to process data. Please try again.",
+        description: error.message || "Failed to process data. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
-      setFile(null);
     }
   };
 
@@ -102,7 +140,7 @@ export const FileUpload = () => {
                 <p className="mb-2 text-sm text-gray-500">
                   <span className="font-semibold">Click to upload</span> or drag and drop
                 </p>
-                <p className="text-xs text-gray-500">Google Sheet URL or CSV file</p>
+                <p className="text-xs text-gray-500">CSV files only</p>
               </div>
               <input
                 id="dropzone-file"
