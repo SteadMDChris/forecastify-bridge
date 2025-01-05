@@ -3,9 +3,9 @@ import pandas as pd
 import io
 import os
 import traceback
-from app.utils import logger
-from app.data_processing import zero_fill_and_aggregate
-from app.forecasting import run_prophet_forecast
+from utils import logger  # Changed from app.utils
+from data_processing import zero_fill_and_aggregate  # Changed from app.data_processing
+from forecasting import run_prophet_forecast  # Changed from app.forecasting
 
 app = Flask(__name__)
 
