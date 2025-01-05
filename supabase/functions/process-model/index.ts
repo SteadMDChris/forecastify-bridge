@@ -7,16 +7,40 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log('Edge Function: Starting request processing');
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Edge Function: Handling CORS preflight request');
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { fileUrl } = await req.json()
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('Edge Function: Error parsing request body:', e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const { fileUrl } = body;
+    if (!fileUrl) {
+      console.error('Edge Function: No fileUrl provided');
+      return new Response(
+        JSON.stringify({ error: 'No fileUrl provided' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     console.log('Edge Function: Processing file:', fileUrl);
 
     // Initialize Supabase client
@@ -24,14 +48,14 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
     // Get the file content from storage
     console.log('Edge Function: Downloading file from storage');
     const { data: fileData, error: fileError } = await supabase
       .storage
       .from('model-inputs')
-      .download(fileUrl)
+      .download(fileUrl);
 
     if (fileError) {
       console.error('Edge Function: Error downloading file:', fileError);
@@ -42,41 +66,50 @@ serve(async (req) => {
           status: 'error',
           results: { error: fileError.message }
         })
-        .eq('input_file_path', fileUrl)
+        .eq('input_file_path', fileUrl);
       
       return new Response(
         JSON.stringify({ error: `Error downloading file: ${fileError.message}` }),
         { 
           status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     }
 
     // Convert file content to text
     console.log('Edge Function: Converting file to text');
-    const fileContent = await fileData.text()
+    const fileContent = await fileData.text();
     console.log('Edge Function: File content length:', fileContent.length);
 
     // Call Python service
-    const PYTHON_SERVICE_URL = 'https://forecastify-bridge.onrender.com'
+    const PYTHON_SERVICE_URL = 'https://forecastify-bridge.onrender.com';
     console.log('Edge Function: Calling Python service at:', PYTHON_SERVICE_URL);
     
-    const pythonResponse = await fetch(`${PYTHON_SERVICE_URL}/process`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ fileContent }),
-    })
+    let pythonResponse;
+    try {
+      pythonResponse = await fetch(`${PYTHON_SERVICE_URL}/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fileContent }),
+      });
+    } catch (error) {
+      console.error('Edge Function: Error calling Python service:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to connect to Python service' }),
+        { 
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     console.log('Edge Function: Python service response status:', pythonResponse.status);
 
     if (!pythonResponse.ok) {
-      const errorText = await pythonResponse.text()
+      const errorText = await pythonResponse.text();
       console.error('Edge Function: Python service error:', errorText);
       
       // Update status to error
@@ -86,21 +119,18 @@ serve(async (req) => {
           status: 'error',
           results: { error: errorText }
         })
-        .eq('input_file_path', fileUrl)
+        .eq('input_file_path', fileUrl);
         
       return new Response(
         JSON.stringify({ error: `Python service error: ${pythonResponse.status} ${errorText}` }),
         { 
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     }
 
-    const results = await pythonResponse.json()
+    const results = await pythonResponse.json();
     console.log('Edge Function: Python service response received');
 
     // Update model results
@@ -111,7 +141,7 @@ serve(async (req) => {
         results: results.data,
         status: 'completed'
       })
-      .eq('input_file_path', fileUrl)
+      .eq('input_file_path', fileUrl);
 
     if (updateError) {
       console.error('Edge Function: Error updating results:', updateError);
@@ -119,12 +149,9 @@ serve(async (req) => {
         JSON.stringify({ error: `Error updating results: ${updateError.message}` }),
         { 
           status: 500,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     }
 
     console.log('Edge Function: Processing completed successfully');
@@ -136,7 +163,7 @@ serve(async (req) => {
           'Content-Type': 'application/json'
         } 
       }
-    )
+    );
 
   } catch (error) {
     console.error('Edge Function: Error in process-model function:', error);
@@ -153,6 +180,6 @@ serve(async (req) => {
           'Content-Type': 'application/json'
         }
       }
-    )
+    );
   }
-})
+});
