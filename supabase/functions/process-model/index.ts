@@ -16,6 +16,7 @@ serve(async (req) => {
     console.log('Processing file:', fileUrl)
 
     const pythonServiceUrl = 'https://forecastify-bridge.onrender.com'
+    console.log('Connecting to Python service at:', pythonServiceUrl)
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -34,6 +35,22 @@ serve(async (req) => {
 
     // Convert the file to text
     const fileContent = await fileData.text()
+    
+    // Test connection to Python service
+    try {
+      const testResponse = await fetch(pythonServiceUrl + '/health', {
+        method: 'GET',
+      })
+      
+      if (!testResponse.ok) {
+        throw new Error(`Python service health check failed: ${testResponse.statusText}`)
+      }
+      
+      console.log('Successfully connected to Python service')
+    } catch (error) {
+      console.error('Failed to connect to Python service:', error)
+      throw new Error(`Cannot connect to Python service: ${error.message}`)
+    }
     
     // Send to Python service for processing
     console.log('Sending data to Python service for processing')
