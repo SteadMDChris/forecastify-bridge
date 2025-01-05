@@ -43,7 +43,17 @@ serve(async (req) => {
           results: { error: fileError.message }
         })
         .eq('input_file_path', fileUrl)
-      throw new Error(`Error downloading file: ${fileError.message}`)
+      
+      return new Response(
+        JSON.stringify({ error: `Error downloading file: ${fileError.message}` }),
+        { 
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
     }
 
     // Convert file content to text
@@ -78,7 +88,16 @@ serve(async (req) => {
         })
         .eq('input_file_path', fileUrl)
         
-      throw new Error(`Python service error: ${pythonResponse.status} ${errorText}`)
+      return new Response(
+        JSON.stringify({ error: `Python service error: ${pythonResponse.status} ${errorText}` }),
+        { 
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
     }
 
     const results = await pythonResponse.json()
@@ -96,7 +115,16 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Edge Function: Error updating results:', updateError);
-      throw new Error(`Error updating results: ${updateError.message}`)
+      return new Response(
+        JSON.stringify({ error: `Error updating results: ${updateError.message}` }),
+        { 
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
     }
 
     console.log('Edge Function: Processing completed successfully');
