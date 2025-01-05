@@ -8,6 +8,9 @@ from utils import logger
 from data_processing import zero_fill_and_aggregate
 from forecasting import run_prophet_forecast
 
+# Import matplotlib config before any other imports that might use matplotlib
+from app.matplotlib_config import *
+
 app = Flask(__name__)
 
 @app.route('/health')

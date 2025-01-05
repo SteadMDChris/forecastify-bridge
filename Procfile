@@ -1,1 +1,1 @@
-web: gunicorn app:app --workers 2 --timeout 120 --max-requests 100 --max-requests-jitter 50 --worker-class sync --worker-tmp-dir /dev/shm
+web: mkdir -p /dev/shm/matplotlib && gunicorn app:app --workers 2 --timeout 120 --max-requests 100 --max-requests-jitter 50 --worker-class sync --worker-tmp-dir /dev/shm
