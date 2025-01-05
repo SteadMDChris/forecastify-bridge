@@ -14,7 +14,7 @@ const Login = () => {
       if (event === 'SIGNED_IN' && session) {
         navigate('/');
       }
-      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         toast({
           title: "Session ended",
           description: "Please sign in again",
@@ -51,13 +51,6 @@ const Login = () => {
           }}
           providers={[]}
           redirectTo={`${window.location.origin}/`}
-          onError={(error) => {
-            toast({
-              title: "Authentication Error",
-              description: error.message,
-              variant: "destructive"
-            });
-          }}
         />
       </div>
     </div>
