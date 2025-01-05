@@ -10,7 +10,7 @@ import { ChartTabs } from "./ChartTabs";
 type DbModelResult = Database['public']['Tables']['model_results']['Row'];
 
 export const Results = () => {
-  const { data: results, isLoading, refetch } = useQuery({
+  const { data: results, isLoading, refetch } = useQuery<DbModelResult & { results: ModelResults }>({
     queryKey: ['model-results'],
     queryFn: async () => {
       console.log("Fetching results...");
