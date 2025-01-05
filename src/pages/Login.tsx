@@ -25,6 +25,15 @@ const Login = () => {
           description: "You have been signed out successfully."
         });
       }
+
+      // Handle authentication errors
+      if (event === 'USER_UPDATED' && !session) {
+        toast({
+          title: "Error",
+          description: "There was a problem signing in. Please check your credentials and try again.",
+          variant: "destructive"
+        });
+      }
     });
   }, [navigate, toast]);
 
@@ -56,6 +65,13 @@ const Login = () => {
           theme="light"
           providers={[]}
           redirectTo={window.location.origin}
+          onError={(error) => {
+            toast({
+              title: "Error",
+              description: error.message,
+              variant: "destructive"
+            });
+          }}
         />
       </div>
     </div>
