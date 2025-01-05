@@ -23,8 +23,9 @@ export function Results() {
 
       if (!data) return null;
 
-      // Type assertion for status
+      // Type assertion for status and results
       const status = data.status as ModelResultsRow['status'];
+      const results = data.results as unknown as ModelResults;
       
       // Ensure the results match our expected type
       const typedData: ModelResultsRow = {
@@ -34,7 +35,7 @@ export function Results() {
         status: status,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        results: data.results as ModelResults
+        results: results
       };
 
       return typedData;
