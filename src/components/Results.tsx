@@ -4,9 +4,10 @@ import { Card } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
 import { Alert, AlertDescription } from "./ui/alert";
 import { ForecastChart } from "./ForecastChart";
+import { ModelResults, ModelResultsRow } from "@/types/forecast";
 
 export function Results() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<ModelResultsRow>({
     queryKey: ['model_results'],
     queryFn: async () => {
       console.log('Fetching results...');
@@ -55,6 +56,8 @@ export function Results() {
     );
   }
 
+  const results = data.results as ModelResults;
+
   return (
     <div className="space-y-4">
       <Card className="p-4">
@@ -64,26 +67,26 @@ export function Results() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
               <div>
                 <p className="text-sm text-muted-foreground">Start Date</p>
-                <p className="font-medium">{data.results.overview.minDate}</p>
+                <p className="font-medium">{results.overview.minDate}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">End Date</p>
-                <p className="font-medium">{data.results.overview.maxDate}</p>
+                <p className="font-medium">{results.overview.maxDate}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Coverage (days)</p>
-                <p className="font-medium">{data.results.overview.dataCoverageDays}</p>
+                <p className="font-medium">{results.overview.dataCoverageDays}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Rows</p>
-                <p className="font-medium">{data.results.overview.totalRows}</p>
+                <p className="font-medium">{results.overview.totalRows}</p>
               </div>
             </div>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">Partners</h3>
             <div className="flex flex-wrap gap-2">
-              {data.results.overview.partners.map((partner: string) => (
+              {results.overview.partners.map((partner: string) => (
                 <span
                   key={partner}
                   className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
@@ -95,7 +98,7 @@ export function Results() {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">Forecast</h3>
-            <ForecastChart data={data.results.forecast.nextSevenDays} />
+            <ForecastChart data={results.forecast.nextSevenDays} />
           </div>
         </div>
       </Card>

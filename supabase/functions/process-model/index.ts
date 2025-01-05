@@ -15,11 +15,8 @@ serve(async (req) => {
     const { fileUrl } = await req.json()
     console.log('Processing file:', fileUrl)
 
-    const pythonServiceUrl = Deno.env.get('PYTHON_SERVICE_URL')
-    if (!pythonServiceUrl) {
-      throw new Error('Python service URL not configured')
-    }
-
+    const pythonServiceUrl = 'https://forecastify-bridge.onrender.com'
+    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
