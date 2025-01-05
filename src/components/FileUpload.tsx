@@ -2,14 +2,62 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  'https://vxbfhissilssquyotlrq.supabase.co',
+  process.env.SUPABASE_ANON_KEY || ''
+);
 
 export const FileUpload = () => {
   const [file, setFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
+    }
+  };
+
+  const processData = async () => {
+    if (!file) return;
+
+    setIsProcessing(true);
+    try {
+      // First upload the file to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('model-inputs')
+        .upload(`${Date.now()}-${file.name}`, file);
+
+      if (uploadError) throw uploadError;
+
+      // Call the edge function to process the model
+      const { data, error } = await supabase.functions.invoke('process-model', {
+        body: { fileUrl: uploadData.path }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Data processed successfully",
+      });
+
+      // You can handle the processed data here
+      console.log('Processed data:', data);
+
+    } catch (error) {
+      console.error('Error processing data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -46,8 +94,12 @@ export const FileUpload = () => {
               Selected file: {file.name}
             </div>
           )}
-          <Button className="w-full bg-primary hover:bg-primary-600" disabled={!file}>
-            Process Data
+          <Button 
+            className="w-full bg-primary hover:bg-primary-600" 
+            disabled={!file || isProcessing}
+            onClick={processData}
+          >
+            {isProcessing ? "Processing..." : "Process Data"}
           </Button>
         </div>
       </CardContent>
