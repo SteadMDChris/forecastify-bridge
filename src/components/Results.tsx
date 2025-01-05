@@ -10,7 +10,7 @@ import { ChartTabs } from "./ChartTabs";
 type DbModelResult = Database['public']['Tables']['model_results']['Row'];
 
 export const Results = () => {
-  const { data: results, isLoading, refetch } = useQuery<DbModelResult & { results: ModelResults }>({
+  const { data: results, isLoading } = useQuery<DbModelResult>({
     queryKey: ['model-results'],
     queryFn: async () => {
       console.log("Fetching results...");
@@ -27,17 +27,7 @@ export const Results = () => {
       }
       
       console.log("Fetched data:", data);
-      
-      if (!data) return null;
-      
-      const parsedResults = data.results as unknown as ModelResults;
-      console.log("Parsed results:", parsedResults);
-      
-      return {
-        ...data,
-        results: parsedResults,
-        status: data.status as ModelResultsRow['status']
-      };
+      return data;
     },
     refetchInterval: (data) => {
       if (!data) return false;
@@ -46,14 +36,16 @@ export const Results = () => {
     },
     refetchIntervalInBackground: true,
     enabled: true,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0 // Replace cacheTime with gcTime
+    staleTime: 0,
+    gcTime: 0
   });
 
+  const parsedResults = results?.results as ModelResults | undefined;
+
   const handleDownload = () => {
-    if (!results) return;
+    if (!results || !parsedResults) return;
     
-    const jsonString = JSON.stringify(results.results, null, 2);
+    const jsonString = JSON.stringify(parsedResults, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -92,7 +84,7 @@ export const Results = () => {
                       </span>
                     </div>
                     
-                    {results.results && results.status === 'completed' && (
+                    {parsedResults && results.status === 'completed' && (
                       <>
                         <div className="space-y-4">
                           <h3 className="text-lg font-semibold">Overview</h3>
@@ -100,25 +92,25 @@ export const Results = () => {
                             <div>
                               <p className="font-medium">Date Range</p>
                               <p className="text-gray-600">
-                                {results.results.overview.minDate} to {results.results.overview.maxDate}
+                                {parsedResults.overview.minDate} to {parsedResults.overview.maxDate}
                               </p>
                             </div>
                             <div>
                               <p className="font-medium">Coverage</p>
-                              <p className="text-gray-600">{results.results.overview.dataCoverageDays} days</p>
+                              <p className="text-gray-600">{parsedResults.overview.dataCoverageDays} days</p>
                             </div>
                             <div>
                               <p className="font-medium">Total Rows</p>
-                              <p className="text-gray-600">{results.results.overview.totalRows}</p>
+                              <p className="text-gray-600">{parsedResults.overview.totalRows}</p>
                             </div>
                             <div>
                               <p className="font-medium">Partners</p>
-                              <p className="text-gray-600">{results.results.overview.partners.join(', ')}</p>
+                              <p className="text-gray-600">{parsedResults.overview.partners.join(', ')}</p>
                             </div>
                           </div>
                         </div>
 
-                        <ChartTabs forecastData={results.results.forecast.nextSevenDays} />
+                        <ChartTabs forecastData={parsedResults.forecast.nextSevenDays} />
                       </>
                     )}
                   </div>
@@ -128,7 +120,7 @@ export const Results = () => {
             <Button 
               className="w-full bg-secondary hover:bg-secondary/90"
               onClick={handleDownload}
-              disabled={!results || !results.results}
+              disabled={!results || !parsedResults}
             >
               <Download className="mr-2 h-4 w-4" />
               Download Results
