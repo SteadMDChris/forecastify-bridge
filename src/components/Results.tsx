@@ -40,7 +40,8 @@ export const Results = () => {
     gcTime: 0
   });
 
-  const parsedResults = results?.results as ModelResults | undefined;
+  // Safely parse the results with proper type assertion
+  const parsedResults = results?.results ? (results.results as unknown as ModelResults) : undefined;
 
   const handleDownload = () => {
     if (!results || !parsedResults) return;
