@@ -26,7 +26,7 @@ const Login = () => {
         });
       }
 
-      // Handle authentication errors
+      // Handle authentication errors through the auth state change
       if (event === 'USER_UPDATED' && !session) {
         toast({
           title: "Error",
@@ -65,13 +65,6 @@ const Login = () => {
           theme="light"
           providers={[]}
           redirectTo={window.location.origin}
-          onError={(error) => {
-            toast({
-              title: "Error",
-              description: error.message,
-              variant: "destructive"
-            });
-          }}
         />
       </div>
     </div>
