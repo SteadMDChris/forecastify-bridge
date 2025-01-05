@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from '@supabase/supabase-js';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Create Supabase client with error handling
 const supabaseUrl = 'https://vxbfhissilssquyotlrq.supabase.co';
@@ -37,9 +38,9 @@ export const FileUpload = () => {
     
     if (!supabase) {
       toast({
-        title: "Configuration Error",
-        description: "Supabase is not properly configured. Please check your settings.",
         variant: "destructive",
+        title: "Configuration Error",
+        description: "Supabase is not properly configured. Please check your environment variables and ensure VITE_SUPABASE_ANON_KEY is set.",
       });
       return;
     }
@@ -86,6 +87,14 @@ export const FileUpload = () => {
         <CardTitle className="font-glegoo text-accent">Upload Data</CardTitle>
       </CardHeader>
       <CardContent>
+        {!supabaseKey && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Configuration Error</AlertTitle>
+            <AlertDescription>
+              Supabase is not properly configured. Please ensure the VITE_SUPABASE_ANON_KEY environment variable is set.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="flex flex-col items-center justify-center gap-4">
           <div className="flex items-center justify-center w-full">
             <label
@@ -115,7 +124,7 @@ export const FileUpload = () => {
           )}
           <Button 
             className="w-full bg-primary hover:bg-primary-600" 
-            disabled={!file || isProcessing}
+            disabled={!file || isProcessing || !supabaseKey}
             onClick={processData}
           >
             {isProcessing ? "Processing..." : "Process Data"}
