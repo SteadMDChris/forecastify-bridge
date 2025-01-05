@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ModelResultsRow, ModelResults } from "@/types/forecast";
 import { Database } from "@/integrations/supabase/types";
+import { ForecastChart } from "./ForecastChart";
 
 type DbModelResult = Database['public']['Tables']['model_results']['Row'];
 
@@ -23,10 +24,11 @@ export const Results = () => {
       
       if (!data) return null;
       
-      // Convert the database result to our ModelResultsRow type
+      const parsedResults = data.results as unknown as ModelResults;
+      
       return {
         ...data,
-        results: data.results as ModelResults,
+        results: parsedResults,
         status: data.status as ModelResultsRow['status']
       };
     }
@@ -48,97 +50,76 @@ export const Results = () => {
   };
 
   return (
-    <Card className="w-full border-2 border-accent/10">
-      <CardHeader>
-        <CardTitle className="font-glegoo text-accent">Results</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          <div className="h-[500px] flex flex-col gap-4 border-2 border-dashed rounded-lg border-secondary/30 overflow-auto p-4">
-            {isLoading ? (
-              <p className="text-gray-500">Loading results...</p>
-            ) : !results ? (
-              <p className="text-gray-500">No results available. Upload a file to get started.</p>
-            ) : (
-              <div className="w-full space-y-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Status:</span>
-                    <span className={`text-sm ${
-                      results.status === 'completed' ? 'text-green-600' : 
-                      results.status === 'processing' ? 'text-blue-600' : 
-                      'text-gray-600'
-                    }`}>
-                      {results.status.charAt(0).toUpperCase() + results.status.slice(1)}
-                    </span>
-                  </div>
-                  
-                  {results.results && results.status === 'completed' && (
-                    <>
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Overview</h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="font-medium">Date Range</p>
-                            <p className="text-gray-600">
-                              {results.results.overview.minDate} to {results.results.overview.maxDate}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="font-medium">Coverage</p>
-                            <p className="text-gray-600">{results.results.overview.dataCoverageDays} days</p>
-                          </div>
-                          <div>
-                            <p className="font-medium">Total Rows</p>
-                            <p className="text-gray-600">{results.results.overview.totalRows}</p>
-                          </div>
-                          <div>
-                            <p className="font-medium">Partners</p>
-                            <p className="text-gray-600">{results.results.overview.partners.join(', ')}</p>
+    <div className="space-y-6">
+      <Card className="w-full border-2 border-accent/10">
+        <CardHeader>
+          <CardTitle className="font-glegoo text-accent">Results</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            <div className="h-[500px] flex flex-col gap-4 border-2 border-dashed rounded-lg border-secondary/30 overflow-auto p-4">
+              {isLoading ? (
+                <p className="text-gray-500">Loading results...</p>
+              ) : !results ? (
+                <p className="text-gray-500">No results available. Upload a file to get started.</p>
+              ) : (
+                <div className="w-full space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Status:</span>
+                      <span className={`text-sm ${
+                        results.status === 'completed' ? 'text-green-600' : 
+                        results.status === 'processing' ? 'text-blue-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {results.status.charAt(0).toUpperCase() + results.status.slice(1)}
+                      </span>
+                    </div>
+                    
+                    {results.results && results.status === 'completed' && (
+                      <>
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold">Overview</h3>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium">Date Range</p>
+                              <p className="text-gray-600">
+                                {results.results.overview.minDate} to {results.results.overview.maxDate}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Coverage</p>
+                              <p className="text-gray-600">{results.results.overview.dataCoverageDays} days</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Total Rows</p>
+                              <p className="text-gray-600">{results.results.overview.totalRows}</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Partners</p>
+                              <p className="text-gray-600">{results.results.overview.partners.join(', ')}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Forecast</h3>
-                        <div className="space-y-2">
-                          <p className="font-medium">Next 7 Days Prediction</p>
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr>
-                                  <th className="text-left">Date</th>
-                                  <th className="text-right">Predicted</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {results.results.forecast.nextSevenDays.map((day) => (
-                                  <tr key={day.date}>
-                                    <td>{day.date}</td>
-                                    <td className="text-right">{day.predicted}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                        <ForecastChart data={results.results.forecast.nextSevenDays} />
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            <Button 
+              className="w-full bg-secondary hover:bg-secondary/90"
+              onClick={handleDownload}
+              disabled={!results || !results.results}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Results
+            </Button>
           </div>
-          <Button 
-            className="w-full bg-secondary hover:bg-secondary/90"
-            onClick={handleDownload}
-            disabled={!results || !results.results}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download Results
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
