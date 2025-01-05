@@ -61,6 +61,14 @@ const Login = () => {
           <h2 className="text-3xl font-bold text-center">Welcome Back</h2>
           <p className="text-gray-600 text-center mt-2">Please sign in to continue</p>
         </div>
+        
+        {/* Admin credentials info */}
+        <div className="mb-6 p-4 bg-blue-50 rounded-md">
+          <h3 className="font-medium text-blue-800 mb-2">Admin Test Account:</h3>
+          <p className="text-sm text-blue-700">Email: admin@example.com</p>
+          <p className="text-sm text-blue-700">Password: password123</p>
+        </div>
+
         <Auth
           supabaseClient={supabase}
           appearance={{
