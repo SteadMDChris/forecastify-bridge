@@ -3,19 +3,64 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/');
+    const autoSignIn = async () => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: 'admin@example.com',
+        password: 'admin123'
+      });
+
+      if (error) {
+        // If sign in fails, try to sign up first
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: 'admin@example.com',
+          password: 'admin123'
+        });
+
+        if (signUpError) {
+          toast({
+            title: "Error",
+            description: signUpError.message,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // After signup, try signing in again
+        const { error: retryError } = await supabase.auth.signInWithPassword({
+          email: 'admin@example.com',
+          password: 'admin123'
+        });
+
+        if (retryError) {
+          toast({
+            title: "Error",
+            description: retryError.message,
+            variant: "destructive"
+          });
+          return;
+        }
       }
+
+      // Create admin role for the user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.rpc('create_initial_admin', {
+          admin_user_id: user.id
+        });
+      }
+
+      navigate('/');
     };
-    checkUser();
-  }, [navigate]);
+
+    autoSignIn();
+  }, [navigate, toast]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -28,34 +73,9 @@ const Login = () => {
           />
           <h1 className="text-2xl font-bold text-primary">Welcome to Forecast Pro</h1>
         </div>
-        <Auth
-          supabaseClient={supabase}
-          appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: 'rgb(var(--primary))',
-                  brandAccent: 'rgb(var(--primary))',
-                }
-              }
-            },
-            style: {
-              button: {
-                borderRadius: '0.5rem',
-                width: '100%'
-              },
-              input: {
-                borderRadius: '0.5rem'
-              }
-            }
-          }}
-          providers={[]}
-          redirectTo={`${window.location.origin}/`}
-          view="sign_in"
-          showLinks={true}
-          magicLink={false}
-        />
+        <div className="text-center">
+          <p>Signing in automatically...</p>
+        </div>
       </div>
     </div>
   );
