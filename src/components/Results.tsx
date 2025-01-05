@@ -1,204 +1,104 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ModelResultsRow, ModelResults } from "@/types/forecast";
-import { Database } from "@/integrations/supabase/types";
-import { ChartTabs } from "./ChartTabs";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card } from "./ui/card";
+import { Skeleton } from "./ui/skeleton";
+import { Alert, AlertDescription } from "./ui/alert";
+import { ForecastChart } from "./ForecastChart";
 
-type DbModelResult = Database['public']['Tables']['model_results']['Row'];
-
-export const Results = () => {
-  const { data: results, isLoading } = useQuery<DbModelResult>({
-    queryKey: ['model-results'],
+export function Results() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['model_results'],
     queryFn: async () => {
-      console.log("Fetching results...");
+      console.log('Fetching results...');
       const { data, error } = await supabase
         .from('model_results')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (error) {
-        console.error("Error fetching results:", error);
-        throw error;
-      }
-      
-      console.log("Fetched data:", data);
-      return data as DbModelResult;
+      if (error) throw error;
+      console.log('Fetched data:', data);
+      return data;
     },
     refetchInterval: (data) => {
-      if (!data) return false;
-      return data.status === 'processing' ? 5000 : false;
-    },
-    refetchIntervalInBackground: true,
-    enabled: true,
-    staleTime: 0,
-    gcTime: 0
+      // If the status is 'processing', refetch every 5 seconds
+      return data?.status === 'processing' ? 5000 : false;
+    }
   });
 
-  // Safely parse the results with proper type assertion
-  const parsedResults = results?.results ? (results.results as unknown as ModelResults) : undefined;
+  if (isLoading) {
+    return (
+      <Card className="p-4">
+        <Skeleton className="h-[200px] w-full" />
+      </Card>
+    );
+  }
 
-  const handleDownloadJson = () => {
-    if (!results || !parsedResults) return;
-    
-    const jsonString = JSON.stringify(parsedResults, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'forecast_output.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          Error loading results: {error.message}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
-  const handleDownloadExcel = async () => {
-    if (!results?.input_file_path) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-excel', {
-        body: { fileUrl: results.input_file_path }
-      });
-      
-      if (error) throw error;
-      
-      // Download the generated Excel file
-      const response = await fetch(data.downloadUrl);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'forecast_output.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading Excel:', error);
-    }
-  };
+  if (!data?.results) {
+    return (
+      <Alert>
+        <AlertDescription>
+          No results available yet. Please upload a file to start the analysis.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <Card className="w-full border-2 border-accent/10">
-        <CardHeader>
-          <CardTitle className="font-glegoo text-accent">Results</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            <div className="min-h-[500px] flex flex-col gap-4 border-2 border-dashed rounded-lg border-secondary/30 p-4">
-              {isLoading ? (
-                <p className="text-gray-500">Loading results...</p>
-              ) : !results ? (
-                <p className="text-gray-500">No results available. Upload a file to get started.</p>
-              ) : (
-                <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="charts">Charts</TabsTrigger>
-                    <TabsTrigger value="data">Data Table</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="overview" className="space-y-4">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Status:</span>
-                        <span className={`text-sm ${
-                          results.status === 'completed' ? 'text-green-600' : 
-                          results.status === 'processing' ? 'text-blue-600' : 
-                          'text-gray-600'
-                        }`}>
-                          {results.status.charAt(0).toUpperCase() + results.status.slice(1)}
-                        </span>
-                      </div>
-                      
-                      {parsedResults && results.status === 'completed' && (
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold">Overview</h3>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="font-medium">Date Range</p>
-                              <p className="text-gray-600">
-                                {parsedResults.overview.minDate} to {parsedResults.overview.maxDate}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="font-medium">Coverage</p>
-                              <p className="text-gray-600">{parsedResults.overview.dataCoverageDays} days</p>
-                            </div>
-                            <div>
-                              <p className="font-medium">Total Rows</p>
-                              <p className="text-gray-600">{parsedResults.overview.totalRows}</p>
-                            </div>
-                            <div>
-                              <p className="font-medium">Partners</p>
-                              <p className="text-gray-600">{parsedResults.overview.partners.join(', ')}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="charts">
-                    {parsedResults && results.status === 'completed' && (
-                      <ChartTabs forecastData={parsedResults.forecast.nextSevenDays} />
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="data">
-                    {parsedResults && results.status === 'completed' && (
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead className="text-right">Predicted Value</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {parsedResults.forecast.nextSevenDays.map((day) => (
-                              <TableRow key={day.date}>
-                                <TableCell>{day.date}</TableCell>
-                                <TableCell className="text-right">{day.predicted}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                className="flex-1 bg-secondary hover:bg-secondary/90"
-                onClick={handleDownloadJson}
-                disabled={!results || !parsedResults}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download JSON
-              </Button>
-              <Button 
-                className="flex-1 bg-secondary hover:bg-secondary/90"
-                onClick={handleDownloadExcel}
-                disabled={!results || !parsedResults}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Excel
-              </Button>
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="grid gap-4">
+          <div>
+            <h3 className="text-lg font-semibold">Overview</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Start Date</p>
+                <p className="font-medium">{data.results.overview.minDate}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">End Date</p>
+                <p className="font-medium">{data.results.overview.maxDate}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Coverage (days)</p>
+                <p className="font-medium">{data.results.overview.dataCoverageDays}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Rows</p>
+                <p className="font-medium">{data.results.overview.totalRows}</p>
+              </div>
             </div>
           </div>
-        </CardContent>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Partners</h3>
+            <div className="flex flex-wrap gap-2">
+              {data.results.overview.partners.map((partner: string) => (
+                <span
+                  key={partner}
+                  className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
+                >
+                  {partner}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Forecast</h3>
+            <ForecastChart data={data.results.forecast.nextSevenDays} />
+          </div>
+        </div>
       </Card>
     </div>
   );
-};
+}
