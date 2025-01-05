@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ModelResultsRow } from "@/types/forecast";
+import { ModelResultsRow, ModelResults } from "@/types/forecast";
+import { Database } from "@/integrations/supabase/types";
+
+type DbModelResult = Database['public']['Tables']['model_results']['Row'];
 
 export const Results = () => {
   const { data: results, isLoading } = useQuery<ModelResultsRow | null>({
@@ -17,7 +20,15 @@ export const Results = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      
+      if (!data) return null;
+      
+      // Convert the database result to our ModelResultsRow type
+      return {
+        ...data,
+        results: data.results as ModelResults,
+        status: data.status as ModelResultsRow['status']
+      };
     }
   });
 
