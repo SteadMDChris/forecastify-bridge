@@ -23,18 +23,27 @@ export function Results() {
 
       if (!data) return null;
 
+      // Type assertion for status
+      const status = data.status as ModelResultsRow['status'];
+      
       // Ensure the results match our expected type
       const typedData: ModelResultsRow = {
-        ...data,
+        id: data.id,
+        user_id: data.user_id,
+        input_file_path: data.input_file_path,
+        status: status,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
         results: data.results as ModelResults
       };
 
       return typedData;
     },
     refetchInterval: (query) => {
-      if (!query.data) return false;
+      const queryData = query.state.data;
+      if (!queryData) return false;
       // If the status is 'processing', refetch every 5 seconds
-      return query.data.status === 'processing' ? 5000 : false;
+      return queryData.status === 'processing' ? 5000 : false;
     }
   });
 
@@ -66,8 +75,6 @@ export function Results() {
     );
   }
 
-  const results = data.results as ModelResults;
-
   return (
     <div className="space-y-4">
       <Card className="p-4">
@@ -77,26 +84,26 @@ export function Results() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
               <div>
                 <p className="text-sm text-muted-foreground">Start Date</p>
-                <p className="font-medium">{results.overview.minDate}</p>
+                <p className="font-medium">{data.results.overview.minDate}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">End Date</p>
-                <p className="font-medium">{results.overview.maxDate}</p>
+                <p className="font-medium">{data.results.overview.maxDate}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Coverage (days)</p>
-                <p className="font-medium">{results.overview.dataCoverageDays}</p>
+                <p className="font-medium">{data.results.overview.dataCoverageDays}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Rows</p>
-                <p className="font-medium">{results.overview.totalRows}</p>
+                <p className="font-medium">{data.results.overview.totalRows}</p>
               </div>
             </div>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">Partners</h3>
             <div className="flex flex-wrap gap-2">
-              {results.overview.partners.map((partner: string) => (
+              {data.results.overview.partners.map((partner: string) => (
                 <span
                   key={partner}
                   className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
@@ -108,7 +115,7 @@ export function Results() {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">Forecast</h3>
-            <ForecastChart data={results.forecast.nextSevenDays} />
+            <ForecastChart data={data.results.forecast.nextSevenDays} />
           </div>
         </div>
       </Card>
