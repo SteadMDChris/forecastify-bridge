@@ -39,7 +39,7 @@ const Login = () => {
       if (event === 'USER_UPDATED' && !session) {
         toast({
           title: "Error",
-          description: "There was a problem signing in. Please check your credentials and try again.",
+          description: "Invalid login credentials. Please check your email and password.",
           variant: "destructive"
         });
       }
