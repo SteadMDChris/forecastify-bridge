@@ -3,13 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from '@supabase/supabase-js';
-
-// Create Supabase client
-const supabaseUrl = 'https://vxbfhissilssquyotlrq.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4YmZoaXNzaWxzc3F1eW90bHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk2NTg1NzAsImV4cCI6MjAyNTIzNDU3MH0.Ij9XQgHcxhEDyRZ5XKoF3oYGFCEEDyJh_ggQS5-YDQM';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@/integrations/supabase/client";
 
 export const FileUpload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -28,12 +22,32 @@ export const FileUpload = () => {
 
     setIsProcessing(true);
     try {
+      console.log("Starting file upload process");
+      
       // First upload the file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('model-inputs')
         .upload(`${Date.now()}-${file.name}`, file);
 
       if (uploadError) throw uploadError;
+      
+      console.log("File uploaded successfully:", uploadData.path);
+
+      // Create a new model_results record
+      const { data: modelResult, error: modelError } = await supabase
+        .from('model_results')
+        .insert([
+          {
+            input_file_path: uploadData.path,
+            status: 'processing'
+          }
+        ])
+        .select()
+        .single();
+
+      if (modelError) throw modelError;
+      
+      console.log("Created model_results record:", modelResult);
 
       // Call the edge function to process the model
       const { data, error } = await supabase.functions.invoke('process-model', {
@@ -42,13 +56,12 @@ export const FileUpload = () => {
 
       if (error) throw error;
 
+      console.log("Edge function response:", data);
+
       toast({
         title: "Success!",
         description: "Data processed successfully",
       });
-
-      // You can handle the processed data here
-      console.log('Processed data:', data);
 
     } catch (error) {
       console.error('Error processing data:', error);
@@ -59,6 +72,7 @@ export const FileUpload = () => {
       });
     } finally {
       setIsProcessing(false);
+      setFile(null);
     }
   };
 

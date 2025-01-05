@@ -31,6 +31,7 @@ export const Results = () => {
       if (!data) return null;
       
       const parsedResults = data.results as unknown as ModelResults;
+      console.log("Parsed results:", parsedResults);
       
       return {
         ...data,
@@ -38,9 +39,14 @@ export const Results = () => {
         status: data.status as ModelResultsRow['status']
       };
     },
-    refetchInterval: 5000, // Refetch every 5 seconds while processing
+    refetchInterval: (data) => {
+      // Only refetch if status is 'processing'
+      return data?.status === 'processing' ? 5000 : false;
+    },
     refetchIntervalInBackground: true,
-    enabled: true // Always enable the query
+    enabled: true,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache the data
   });
 
   const handleDownload = () => {
