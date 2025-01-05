@@ -1,1 +1,1 @@
-web: gunicorn app:app --workers 3 --timeout 120 --preload --max-requests 1000 --max-requests-jitter 50
+web: gunicorn app:app --workers 2 --timeout 120 --max-requests 100 --max-requests-jitter 50 --worker-class sync --worker-tmp-dir /dev/shm
