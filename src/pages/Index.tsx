@@ -1,8 +1,24 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { FileUpload } from "@/components/FileUpload";
 import { Results } from "@/components/Results";
+import { AdminPanel } from "@/components/AdminPanel";
 
 const Index = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+      }
+    };
+    checkAuth();
+  }, [navigate]);
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
@@ -20,6 +36,7 @@ const Index = () => {
             <FileUpload />
             <Results />
           </div>
+          <AdminPanel />
         </div>
       </main>
     </div>
