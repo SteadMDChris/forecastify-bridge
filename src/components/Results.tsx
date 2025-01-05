@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ModelResultsRow, ModelResults } from "@/types/forecast";
 import { Database } from "@/integrations/supabase/types";
 import { ChartTabs } from "./ChartTabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type DbModelResult = Database['public']['Tables']['model_results']['Row'];
 
@@ -42,7 +44,7 @@ export const Results = () => {
   // Safely parse the results with proper type assertion
   const parsedResults = results?.results ? (results.results as unknown as ModelResults) : undefined;
 
-  const handleDownload = () => {
+  const handleDownloadJson = () => {
     if (!results || !parsedResults) return;
     
     const jsonString = JSON.stringify(parsedResults, null, 2);
@@ -57,6 +59,32 @@ export const Results = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadExcel = async () => {
+    if (!results?.input_file_path) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-excel', {
+        body: { fileUrl: results.input_file_path }
+      });
+      
+      if (error) throw error;
+      
+      // Download the generated Excel file
+      const response = await fetch(data.downloadUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'forecast_output.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading Excel:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="w-full border-2 border-accent/10">
@@ -65,27 +93,33 @@ export const Results = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
-            <div className="h-[500px] flex flex-col gap-4 border-2 border-dashed rounded-lg border-secondary/30 overflow-auto p-4">
+            <div className="min-h-[500px] flex flex-col gap-4 border-2 border-dashed rounded-lg border-secondary/30 p-4">
               {isLoading ? (
                 <p className="text-gray-500">Loading results...</p>
               ) : !results ? (
                 <p className="text-gray-500">No results available. Upload a file to get started.</p>
               ) : (
-                <div className="w-full space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Status:</span>
-                      <span className={`text-sm ${
-                        results.status === 'completed' ? 'text-green-600' : 
-                        results.status === 'processing' ? 'text-blue-600' : 
-                        'text-gray-600'
-                      }`}>
-                        {results.status.charAt(0).toUpperCase() + results.status.slice(1)}
-                      </span>
-                    </div>
-                    
-                    {parsedResults && results.status === 'completed' && (
-                      <>
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="charts">Charts</TabsTrigger>
+                    <TabsTrigger value="data">Data Table</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Status:</span>
+                        <span className={`text-sm ${
+                          results.status === 'completed' ? 'text-green-600' : 
+                          results.status === 'processing' ? 'text-blue-600' : 
+                          'text-gray-600'
+                        }`}>
+                          {results.status.charAt(0).toUpperCase() + results.status.slice(1)}
+                        </span>
+                      </div>
+                      
+                      {parsedResults && results.status === 'completed' && (
                         <div className="space-y-4">
                           <h3 className="text-lg font-semibold">Overview</h3>
                           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -109,22 +143,59 @@ export const Results = () => {
                             </div>
                           </div>
                         </div>
+                      )}
+                    </div>
+                  </TabsContent>
 
-                        <ChartTabs forecastData={parsedResults.forecast.nextSevenDays} />
-                      </>
+                  <TabsContent value="charts">
+                    {parsedResults && results.status === 'completed' && (
+                      <ChartTabs forecastData={parsedResults.forecast.nextSevenDays} />
                     )}
-                  </div>
-                </div>
+                  </TabsContent>
+
+                  <TabsContent value="data">
+                    {parsedResults && results.status === 'completed' && (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead className="text-right">Predicted Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {parsedResults.forecast.nextSevenDays.map((day) => (
+                              <TableRow key={day.date}>
+                                <TableCell>{day.date}</TableCell>
+                                <TableCell className="text-right">{day.predicted}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               )}
             </div>
-            <Button 
-              className="w-full bg-secondary hover:bg-secondary/90"
-              onClick={handleDownload}
-              disabled={!results || !parsedResults}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Download Results
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                className="flex-1 bg-secondary hover:bg-secondary/90"
+                onClick={handleDownloadJson}
+                disabled={!results || !parsedResults}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download JSON
+              </Button>
+              <Button 
+                className="flex-1 bg-secondary hover:bg-secondary/90"
+                onClick={handleDownloadExcel}
+                disabled={!results || !parsedResults}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Excel
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
