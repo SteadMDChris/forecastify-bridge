@@ -10,7 +10,17 @@ const Login = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/");
+      }
+    });
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         toast({
           title: "Welcome back!",
@@ -26,7 +36,6 @@ const Login = () => {
         });
       }
 
-      // Handle authentication errors through the auth state change
       if (event === 'USER_UPDATED' && !session) {
         toast({
           title: "Error",
@@ -35,6 +44,9 @@ const Login = () => {
         });
       }
     });
+
+    // Cleanup subscription on unmount
+    return () => subscription.unsubscribe();
   }, [navigate, toast]);
 
   return (
