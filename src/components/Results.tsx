@@ -40,13 +40,14 @@ export const Results = () => {
       };
     },
     refetchInterval: (data) => {
+      if (!data) return false;
       // Only refetch if status is 'processing'
-      return data?.status === 'processing' ? 5000 : false;
+      return data.status === 'processing' ? 5000 : false;
     },
     refetchIntervalInBackground: true,
     enabled: true,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0 // Replace cacheTime with gcTime
   });
 
   const handleDownload = () => {
