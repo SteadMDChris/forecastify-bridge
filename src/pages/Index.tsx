@@ -1,12 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Header } from "@/components/Header";
+import { FileUpload } from "@/components/FileUpload";
+import { Results } from "@/components/Results";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-1 container py-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold text-gray-900">
+              Forecasting Model
+            </h1>
+            <p className="text-lg text-gray-600">
+              Upload your data and get instant forecasting results
+            </p>
+          </div>
+          <div className="grid gap-8">
+            <FileUpload />
+            <Results />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
