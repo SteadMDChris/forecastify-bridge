@@ -24,6 +24,14 @@ export const FileUpload = () => {
     try {
       console.log("Starting file upload process");
       
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      
+      if (!user) {
+        throw new Error("You must be logged in to upload files");
+      }
+
       // First upload the file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('model-inputs')
@@ -33,13 +41,14 @@ export const FileUpload = () => {
       
       console.log("File uploaded successfully:", uploadData.path);
 
-      // Create a new model_results record
+      // Create a new model_results record with user_id
       const { data: modelResult, error: modelError } = await supabase
         .from('model_results')
         .insert([
           {
             input_file_path: uploadData.path,
-            status: 'processing'
+            status: 'processing',
+            user_id: user.id // Include the user_id
           }
         ])
         .select()
