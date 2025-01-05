@@ -4,22 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from '@supabase/supabase-js';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Create Supabase client with error handling
+// Create Supabase client
 const supabaseUrl = 'https://vxbfhissilssquyotlrq.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4YmZoaXNzaWxzc3F1eW90bHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk2NTg1NzAsImV4cCI6MjAyNTIzNDU3MH0.Ij9XQgHcxhEDyRZ5XKoF3oYGFCEEDyJh_ggQS5-YDQM';
 
-let supabase = null;
-try {
-  if (!supabaseKey) {
-    console.error('Supabase anon key is not set. Please add it to your environment variables.');
-  } else {
-    supabase = createClient(supabaseUrl, supabaseKey);
-  }
-} catch (error) {
-  console.error('Error initializing Supabase client:', error);
-}
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const FileUpload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -35,15 +25,6 @@ export const FileUpload = () => {
 
   const processData = async () => {
     if (!file) return;
-    
-    if (!supabase) {
-      toast({
-        variant: "destructive",
-        title: "Configuration Error",
-        description: "Supabase is not properly configured. Please check your environment variables and ensure VITE_SUPABASE_ANON_KEY is set.",
-      });
-      return;
-    }
 
     setIsProcessing(true);
     try {
@@ -87,14 +68,6 @@ export const FileUpload = () => {
         <CardTitle className="font-glegoo text-accent">Upload Data</CardTitle>
       </CardHeader>
       <CardContent>
-        {!supabaseKey && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Configuration Error</AlertTitle>
-            <AlertDescription>
-              Supabase is not properly configured. Please ensure the VITE_SUPABASE_ANON_KEY environment variable is set.
-            </AlertDescription>
-          </Alert>
-        )}
         <div className="flex flex-col items-center justify-center gap-4">
           <div className="flex items-center justify-center w-full">
             <label
@@ -124,7 +97,7 @@ export const FileUpload = () => {
           )}
           <Button 
             className="w-full bg-primary hover:bg-primary-600" 
-            disabled={!file || isProcessing || !supabaseKey}
+            disabled={!file || isProcessing}
             onClick={processData}
           >
             {isProcessing ? "Processing..." : "Process Data"}
