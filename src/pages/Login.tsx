@@ -3,28 +3,62 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Check if user is already logged in
     supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      if (event === 'SIGNED_IN' && session) {
         navigate("/");
       }
+      
+      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully."
+        });
+      }
     });
-  }, [navigate]);
+  }, [navigate, toast]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold text-center mb-8">Welcome Back</h2>
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src="https://raw.githubusercontent.com/SteadMDChris/Image/main/smd2logo%20(2).png"
+            alt="SteadyMD Logo"
+            className="h-12 w-auto mb-4"
+          />
+          <h2 className="text-3xl font-bold text-center">Welcome Back</h2>
+          <p className="text-gray-600 text-center mt-2">Please sign in to continue</p>
+        </div>
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
+          appearance={{
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: '#2563eb',
+                  brandAccent: '#1d4ed8',
+                }
+              }
+            }
+          }}
           theme="light"
           providers={[]}
+          onError={(error) => {
+            toast({
+              variant: "destructive",
+              title: "Authentication Error",
+              description: error.message,
+            });
+          }}
         />
       </div>
     </div>
