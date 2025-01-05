@@ -1,5 +1,4 @@
 import { Database } from './database'
-
 export type Enums<
   PublicEnumNameOrOptions extends
     | keyof PublicSchema["Enums"]
@@ -12,5 +11,4 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
     ? PublicSchema["Enums"][PublicEnumNameOrOptions]
     : never
-
 type PublicSchema = Database[Extract<keyof Database, "public">]

@@ -1,7 +1,5 @@
 import { Database } from './database'
-
 type PublicSchema = Database[Extract<keyof Database, "public">]
-
 export type TablesInsert<
   PublicTableNameOrOptions extends
     | keyof PublicSchema["Tables"]
@@ -22,7 +20,6 @@ export type TablesInsert<
       ? I
       : never
     : never
-
 export type TablesUpdate<
   PublicTableNameOrOptions extends
     | keyof PublicSchema["Tables"]
