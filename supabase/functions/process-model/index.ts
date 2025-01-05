@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { load } from "https://deno.land/std@0.204.0/dotenv/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +14,11 @@ serve(async (req) => {
   try {
     const { fileUrl } = await req.json()
     console.log('Processing file:', fileUrl)
+
+    const pythonServiceUrl = Deno.env.get('PYTHON_SERVICE_URL')
+    if (!pythonServiceUrl) {
+      throw new Error('Python service URL not configured')
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -32,37 +36,31 @@ serve(async (req) => {
     }
 
     // Convert the file to text
-    const text = await fileData.text()
+    const fileContent = await fileData.text()
     
-    // TODO: Here we'll integrate the Python code to process the data
-    // For now, return mock results matching our TypeScript types
-    const mockResults = {
-      overview: {
-        minDate: "2024-01-01",
-        maxDate: "2024-03-01",
-        dataCoverageDays: 60,
-        totalRows: 1000,
-        partners: ["Partner A", "Partner B"]
+    // Send to Python service for processing
+    console.log('Sending data to Python service for processing')
+    const response = await fetch(pythonServiceUrl + '/process', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      forecast: {
-        nextSevenDays: [
-          { date: "2024-03-02", predicted: 150 },
-          { date: "2024-03-03", predicted: 160 },
-          { date: "2024-03-04", predicted: 155 },
-          { date: "2024-03-05", predicted: 165 },
-          { date: "2024-03-06", predicted: 170 },
-          { date: "2024-03-07", predicted: 158 },
-          { date: "2024-03-08", predicted: 162 }
-        ]
-      }
+      body: JSON.stringify({ fileContent })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Python service error: ${response.statusText}`)
     }
+
+    const processingResult = await response.json()
+    console.log('Received processing results from Python service')
 
     // Update the model_results table
     const { error: updateError } = await supabase
       .from('model_results')
       .update({ 
         status: 'completed',
-        results: mockResults
+        results: processingResult.data
       })
       .eq('input_file_path', fileUrl)
 
@@ -71,7 +69,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, results: mockResults }),
+      JSON.stringify({ success: true, results: processingResult.data }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
