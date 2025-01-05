@@ -10,9 +10,10 @@ import { ForecastChart } from "./ForecastChart";
 type DbModelResult = Database['public']['Tables']['model_results']['Row'];
 
 export const Results = () => {
-  const { data: results, isLoading } = useQuery<ModelResultsRow | null>({
+  const { data: results, isLoading, refetch } = useQuery({
     queryKey: ['model-results'],
     queryFn: async () => {
+      console.log("Fetching results...");
       const { data, error } = await supabase
         .from('model_results')
         .select('*')
@@ -20,7 +21,12 @@ export const Results = () => {
         .limit(1)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching results:", error);
+        throw error;
+      }
+      
+      console.log("Fetched data:", data);
       
       if (!data) return null;
       
@@ -31,7 +37,10 @@ export const Results = () => {
         results: parsedResults,
         status: data.status as ModelResultsRow['status']
       };
-    }
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds while processing
+    refetchIntervalInBackground: true,
+    enabled: true // Always enable the query
   });
 
   const handleDownload = () => {
