@@ -32,11 +32,18 @@ const Login = () => {
           supabaseClient={supabase}
           appearance={{
             theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: 'rgb(var(--primary))',
+                  brandAccent: 'rgb(var(--primary))',
+                }
+              }
+            },
             style: {
               button: {
-                background: 'rgb(var(--primary))',
-                color: 'rgb(var(--primary-foreground))',
-                borderRadius: '0.5rem'
+                borderRadius: '0.5rem',
+                width: '100%'
               },
               input: {
                 borderRadius: '0.5rem'
@@ -44,6 +51,7 @@ const Login = () => {
             }
           }}
           providers={[]}
+          redirectTo={window.location.origin}
         />
       </div>
     </div>
