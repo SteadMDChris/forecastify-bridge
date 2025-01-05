@@ -33,6 +33,36 @@ export type Database = {
         }
         Relationships: []
       }
+      model_results: {
+        Row: {
+          created_at: string | null
+          id: string
+          input_file_path: string
+          results: Json | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          input_file_path: string
+          results?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          input_file_path?: string
+          results?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
