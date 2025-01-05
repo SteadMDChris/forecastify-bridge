@@ -7,7 +7,7 @@ import { ForecastChart } from "./ForecastChart";
 import { ModelResults, ModelResultsRow } from "@/types/forecast";
 
 export function Results() {
-  const { data, isLoading, error } = useQuery<ModelResultsRow>({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['model_results'],
     queryFn: async () => {
       console.log('Fetching results...');
@@ -16,15 +16,16 @@ export function Results() {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       console.log('Fetched data:', data);
-      return data;
+      return data as ModelResultsRow | null;
     },
     refetchInterval: (data) => {
+      if (!data) return false;
       // If the status is 'processing', refetch every 5 seconds
-      return data?.status === 'processing' ? 5000 : false;
+      return data.status === 'processing' ? 5000 : false;
     }
   });
 
@@ -46,7 +47,7 @@ export function Results() {
     );
   }
 
-  if (!data?.results) {
+  if (!data || !data.results) {
     return (
       <Alert>
         <AlertDescription>
