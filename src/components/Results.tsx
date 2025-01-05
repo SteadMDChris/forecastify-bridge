@@ -66,7 +66,19 @@ export function Results() {
     );
   }
 
-  if (!data || !data.results) {
+  // Show processing state
+  if (data?.status === 'processing') {
+    return (
+      <Alert>
+        <AlertDescription>
+          Processing your data... This may take a few moments.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Check if we have valid results data
+  if (!data?.results?.overview || !data?.results?.forecast?.nextSevenDays) {
     return (
       <Alert>
         <AlertDescription>
