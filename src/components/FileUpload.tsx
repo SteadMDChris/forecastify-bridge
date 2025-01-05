@@ -105,10 +105,11 @@ export const FileUpload = () => {
         description: "File uploaded and processing started",
       });
 
-      // Reset the file input
+      // Reset the file input and state
       setFile(null);
-      if (event.target) {
-        event.target.value = '';
+      const fileInput = document.getElementById('dropzone-file') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
       }
 
     } catch (error) {
