@@ -39,7 +39,6 @@ export const FileUpload = () => {
     try {
       console.log("Starting file upload process");
       
-      // Get the current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) {
         throw new Error("Authentication error: " + userError.message);
@@ -49,11 +48,9 @@ export const FileUpload = () => {
         throw new Error("You must be logged in to upload files");
       }
 
-      // Create a sanitized filename
       const timestamp = Date.now();
       const sanitizedFileName = `${timestamp}-${file.name.replace(/[^\x00-\x7F]/g, '')}`;
 
-      // First upload the file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('model-inputs')
         .upload(sanitizedFileName, file, {
@@ -68,7 +65,6 @@ export const FileUpload = () => {
       
       console.log("File uploaded successfully:", uploadData.path);
 
-      // Create a new model_results record with user_id
       const { data: modelResult, error: modelError } = await supabase
         .from('model_results')
         .insert([
@@ -88,13 +84,15 @@ export const FileUpload = () => {
       
       console.log("Created model_results record:", modelResult);
 
-      // Call the edge function to process the model
       const { data, error } = await supabase.functions.invoke('process-model', {
         body: { fileUrl: uploadData.path }
       });
 
       if (error) {
         console.error('Edge function error:', error);
+        if (error.message.includes('Python service is temporarily unavailable')) {
+          throw new Error("The processing service is temporarily unavailable. Please try again in a few minutes.");
+        }
         throw new Error("Failed to process file: " + error.message);
       }
 
@@ -105,7 +103,6 @@ export const FileUpload = () => {
         description: "File uploaded and processing started",
       });
 
-      // Reset the file input and state
       setFile(null);
       const fileInput = document.getElementById('dropzone-file') as HTMLInputElement;
       if (fileInput) {

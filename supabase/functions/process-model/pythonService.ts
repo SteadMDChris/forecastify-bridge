@@ -1,42 +1,66 @@
 export class PythonService {
   private baseUrl: string;
+  private maxRetries: number;
+  private retryDelay: number;
 
   constructor() {
     this.baseUrl = 'https://forecastify-bridge.onrender.com';
+    this.maxRetries = 3;
+    this.retryDelay = 2000; // 2 seconds
+  }
+
+  private async sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   async processFile(fileContent: string): Promise<any> {
-    console.log('PythonService: Calling Python service at:', this.baseUrl);
+    console.log('PythonService: Starting file processing with retries');
     
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    let lastError;
+    for(let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        console.log(`PythonService: Attempt ${attempt} of ${this.maxRetries}`);
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
 
-    try {
-      const response = await fetch(`${this.baseUrl}/process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fileContent }),
-        signal: controller.signal
-      });
+        const response = await fetch(`${this.baseUrl}/process`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ fileContent }),
+          signal: controller.signal
+        });
 
-      clearTimeout(timeout);
+        clearTimeout(timeout);
 
-      console.log('PythonService: Response status:', response.status);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`PythonService: Error response (${response.status}):`, errorText);
+          
+          if (response.status === 502) {
+            throw new Error('Python service is temporarily unavailable');
+          }
+          
+          throw new Error(`Python service error (${response.status}): ${errorText}`);
+        }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('PythonService: Error:', errorText);
-        throw new Error(`Python service error: ${response.status} ${errorText}`);
+        const data = await response.json();
+        console.log('PythonService: Successfully processed file');
+        return data;
+
+      } catch (error) {
+        console.error(`PythonService: Attempt ${attempt} failed:`, error);
+        lastError = error;
+        
+        if (attempt < this.maxRetries) {
+          console.log(`PythonService: Waiting ${this.retryDelay}ms before retry`);
+          await this.sleep(this.retryDelay);
+        }
       }
-
-      return await response.json();
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Python service timeout after 60 seconds');
-      }
-      throw error;
     }
+
+    throw lastError;
   }
 }
