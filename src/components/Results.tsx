@@ -27,11 +27,10 @@ export const Results = () => {
       }
       
       console.log("Fetched data:", data);
-      return data;
+      return data as DbModelResult;
     },
     refetchInterval: (data) => {
       if (!data) return false;
-      // Only refetch if status is 'processing'
       return data.status === 'processing' ? 5000 : false;
     },
     refetchIntervalInBackground: true,
