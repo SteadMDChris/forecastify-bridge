@@ -77,6 +77,15 @@ const Login = () => {
           theme="light"
           providers={[]}
           redirectTo={window.location.origin}
+          onError={(error) => {
+            if (error.message.includes('User already registered')) {
+              toast({
+                title: "Account exists",
+                description: "This email is already registered. Please sign in instead.",
+                variant: "destructive"
+              });
+            }
+          }}
         />
       </div>
     </div>
