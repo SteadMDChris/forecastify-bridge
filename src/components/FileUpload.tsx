@@ -2,18 +2,23 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { createClient } from '@supabase/supabase-js';
 
 // Create Supabase client with error handling
 const supabaseUrl = 'https://vxbfhissilssquyotlrq.supabase.co';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseKey) {
-  console.error('Supabase anon key is not set. Please add it to your environment variables.');
+let supabase = null;
+try {
+  if (!supabaseKey) {
+    console.error('Supabase anon key is not set. Please add it to your environment variables.');
+  } else {
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+} catch (error) {
+  console.error('Error initializing Supabase client:', error);
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey || '');
 
 export const FileUpload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -29,10 +34,11 @@ export const FileUpload = () => {
 
   const processData = async () => {
     if (!file) return;
-    if (!supabaseKey) {
+    
+    if (!supabase) {
       toast({
         title: "Configuration Error",
-        description: "Supabase key is not configured. Please check your settings.",
+        description: "Supabase is not properly configured. Please check your settings.",
         variant: "destructive",
       });
       return;
