@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ModelResultsRow } from "@/types/forecast";
 
 export const Results = () => {
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading } = useQuery<ModelResultsRow | null>({
     queryKey: ['model-results'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -100,7 +101,7 @@ export const Results = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {results.results.forecast.nextSevenDays.map((day: any) => (
+                                {results.results.forecast.nextSevenDays.map((day) => (
                                   <tr key={day.date}>
                                     <td>{day.date}</td>
                                     <td className="text-right">{day.predicted}</td>

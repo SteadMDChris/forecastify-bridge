@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { load } from "https://deno.land/std@0.204.0/dotenv/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -16,7 +16,6 @@ serve(async (req) => {
     const { fileUrl } = await req.json()
     console.log('Processing file:', fileUrl)
 
-    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -35,26 +34,26 @@ serve(async (req) => {
     // Convert the file to text
     const text = await fileData.text()
     
-    // TODO: Here we'll add the Python code to process the data
-    // For now, return a mock result
+    // TODO: Here we'll integrate the Python code to process the data
+    // For now, return mock results matching our TypeScript types
     const mockResults = {
       overview: {
         minDate: "2024-01-01",
         maxDate: "2024-03-01",
-        totalRows: 1000,
         dataCoverageDays: 60,
+        totalRows: 1000,
         partners: ["Partner A", "Partner B"]
       },
       forecast: {
         nextSevenDays: [
           { date: "2024-03-02", predicted: 150 },
           { date: "2024-03-03", predicted: 160 },
-          // ... more days
-        ],
-        components: {
-          trend: "increasing",
-          seasonality: "weekly pattern detected"
-        }
+          { date: "2024-03-04", predicted: 155 },
+          { date: "2024-03-05", predicted: 165 },
+          { date: "2024-03-06", predicted: 170 },
+          { date: "2024-03-07", predicted: 158 },
+          { date: "2024-03-08", predicted: 162 }
+        ]
       }
     }
 
