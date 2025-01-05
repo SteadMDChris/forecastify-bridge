@@ -25,34 +25,34 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#2563eb",
+          DEFAULT: "#FF264D", // SMD Magenta
           foreground: "#ffffff",
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
+          50: "#fff1f3",
+          100: "#ffe4e8",
+          200: "#ffccd5",
+          300: "#ffa3b3",
+          400: "#ff6c85",
+          500: "#ff264d",
+          600: "#ff1133",
+          700: "#e60026",
+          800: "#bf0020",
+          900: "#9d001b",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "#26AEBC", // SMD Teal
+          foreground: "#ffffff",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "#404040", // SMD Black
+          foreground: "#ffffff",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "#173360", // SMD Dark Blue
+          foreground: "#ffffff",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -70,6 +70,7 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
+        glegoo: ["Glegoo", "serif"],
       },
       keyframes: {
         "accordion-down": {
