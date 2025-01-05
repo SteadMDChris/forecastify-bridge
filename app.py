@@ -4,8 +4,12 @@ import numpy as np
 from prophet import Prophet
 import io
 import xlsxwriter
+import os
+import logging
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @app.route('/health')
 def health_check():
@@ -87,57 +91,76 @@ def run_prophet_forecast(df_total, forecast_days=7):
 
 @app.route("/process", methods=["POST"])
 def process_file():
-    data = request.json
-    file_content = data.get("fileContent")
+    try:
+        logger.info("Starting file processing")
+        data = request.json
+        file_content = data.get("fileContent")
+        
+        if not file_content:
+            logger.error("No file content provided")
+            return jsonify({"error": "No file content provided"}), 400
 
-    # Read CSV content into pandas DataFrame
-    df = pd.read_csv(io.StringIO(file_content))
+        # Read CSV content into pandas DataFrame
+        logger.info("Reading CSV content")
+        df = pd.read_csv(io.StringIO(file_content))
 
-    # Adjust column names as per your logic
-    datetime_col = "Fact Consult Consult Created Time"
-    program_col = "Fact Partner Partner Name"
-    state_col = "Fact Consult Consult State"
-    unique_id_col = "Fact Consult Consult Guid"
+        # Adjust column names as per your logic
+        datetime_col = "Fact Consult Consult Created Time"
+        program_col = "Fact Partner Partner Name"
+        state_col = "Fact Consult Consult State"
+        unique_id_col = "Fact Consult Consult Guid"
 
-    df["timestamp"] = pd.to_datetime(df[datetime_col], errors="coerce")
-    df = df.dropna(subset=["timestamp"])
-    df = df.sort_values("timestamp").reset_index(drop=True)
+        logger.info("Processing timestamps")
+        df["timestamp"] = pd.to_datetime(df[datetime_col], errors="coerce")
+        df = df.dropna(subset=["timestamp"])
+        df = df.sort_values("timestamp").reset_index(drop=True)
 
-    df_agg, df_total = zero_fill_and_aggregate(df, program_col, state_col, unique_id_col)
+        logger.info("Aggregating data")
+        df_agg, df_total = zero_fill_and_aggregate(df, program_col, state_col, unique_id_col)
 
-    model, forecast = run_prophet_forecast(df_total)
+        logger.info("Running forecast")
+        model, forecast = run_prophet_forecast(df_total)
 
-    # Create Excel for download
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df_total.to_excel(writer, sheet_name="Aggregated Data", index=False)
-        forecast.to_excel(writer, sheet_name="Forecast", index=False)
+        # Create Excel for download
+        logger.info("Creating Excel file")
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df_total.to_excel(writer, sheet_name="Aggregated Data", index=False)
+            forecast.to_excel(writer, sheet_name="Forecast", index=False)
 
-    output.seek(0)
+        output.seek(0)
 
-    # Format the response data
-    next_seven_days = []
-    for i in range(7):
-        forecast_date = forecast.iloc[-7 + i]
-        next_seven_days.append({
-            "date": forecast_date["ds"].strftime("%Y-%m-%d"),
-            "predicted": round(float(forecast_date["yhat"]), 2)
-        })
+        # Format the next seven days forecast
+        logger.info("Formatting response")
+        next_seven_days = []
+        for i in range(7):
+            forecast_date = forecast.iloc[-7 + i]
+            next_seven_days.append({
+                "date": forecast_date["ds"].strftime("%Y-%m-%d"),
+                "predicted": round(float(forecast_date["yhat"]), 2)
+            })
 
-    return jsonify({
-        "data": {
-            "overview": {
-                "minDate": df["timestamp"].min().strftime("%Y-%m-%d"),
-                "maxDate": df["timestamp"].max().strftime("%Y-%m-%d"),
-                "dataCoverageDays": (df["timestamp"].max() - df["timestamp"].min()).days,
-                "totalRows": len(df),
-                "partners": df[program_col].unique().tolist()
-            },
-            "forecast": {
-                "nextSevenDays": next_seven_days
+        response_data = {
+            "data": {
+                "overview": {
+                    "minDate": df["timestamp"].min().strftime("%Y-%m-%d"),
+                    "maxDate": df["timestamp"].max().strftime("%Y-%m-%d"),
+                    "dataCoverageDays": (df["timestamp"].max() - df["timestamp"].min()).days,
+                    "totalRows": len(df),
+                    "partners": df[program_col].unique().tolist()
+                },
+                "forecast": {
+                    "nextSevenDays": next_seven_days
+                }
             }
         }
-    })
+        
+        logger.info("Processing completed successfully")
+        return jsonify(response_data)
+
+    except Exception as e:
+        logger.error(f"Error processing file: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
