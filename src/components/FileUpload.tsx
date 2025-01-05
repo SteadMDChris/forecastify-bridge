@@ -5,10 +5,15 @@ import { Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  'https://vxbfhissilssquyotlrq.supabase.co',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-);
+// Create Supabase client with error handling
+const supabaseUrl = 'https://vxbfhissilssquyotlrq.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseKey) {
+  console.error('Supabase anon key is not set. Please add it to your environment variables.');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey || '');
 
 export const FileUpload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -24,6 +29,14 @@ export const FileUpload = () => {
 
   const processData = async () => {
     if (!file) return;
+    if (!supabaseKey) {
+      toast({
+        title: "Configuration Error",
+        description: "Supabase key is not configured. Please check your settings.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsProcessing(true);
     try {
