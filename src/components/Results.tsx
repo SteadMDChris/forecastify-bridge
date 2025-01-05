@@ -13,7 +13,7 @@ export const Results = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -46,7 +46,7 @@ export const Results = () => {
             {isLoading ? (
               <p className="text-gray-500">Loading results...</p>
             ) : !results ? (
-              <p className="text-gray-500">No results available</p>
+              <p className="text-gray-500">No results available. Upload a file to get started.</p>
             ) : (
               <div className="w-full">
                 <div className="space-y-4">
