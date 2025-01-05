@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ModelResultsRow, ModelResults } from "@/types/forecast";
 import { Database } from "@/integrations/supabase/types";
-import { ForecastChart } from "./ForecastChart";
+import { ChartTabs } from "./ChartTabs";
 
 type DbModelResult = Database['public']['Tables']['model_results']['Row'];
 
@@ -111,7 +111,7 @@ export const Results = () => {
                           </div>
                         </div>
 
-                        <ForecastChart data={results.results.forecast.nextSevenDays} />
+                        <ChartTabs forecastData={results.results.forecast.nextSevenDays} />
                       </>
                     )}
                   </div>
