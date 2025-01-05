@@ -28,7 +28,7 @@ export const Results = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'model-results.json';
+    a.download = 'forecast_output.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -42,13 +42,13 @@ export const Results = () => {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
-          <div className="h-64 flex items-center justify-center border-2 border-dashed rounded-lg border-secondary/30 overflow-auto p-4">
+          <div className="h-[500px] flex flex-col gap-4 border-2 border-dashed rounded-lg border-secondary/30 overflow-auto p-4">
             {isLoading ? (
               <p className="text-gray-500">Loading results...</p>
             ) : !results ? (
               <p className="text-gray-500">No results available. Upload a file to get started.</p>
             ) : (
-              <div className="w-full">
+              <div className="w-full space-y-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Status:</span>
@@ -60,10 +60,58 @@ export const Results = () => {
                       {results.status.charAt(0).toUpperCase() + results.status.slice(1)}
                     </span>
                   </div>
-                  {results.results && Object.keys(results.results).length > 0 && (
-                    <pre className="text-sm bg-gray-50 p-4 rounded-lg overflow-auto">
-                      {JSON.stringify(results.results, null, 2)}
-                    </pre>
+                  
+                  {results.results && results.status === 'completed' && (
+                    <>
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Overview</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="font-medium">Date Range</p>
+                            <p className="text-gray-600">
+                              {results.results.overview.minDate} to {results.results.overview.maxDate}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-medium">Coverage</p>
+                            <p className="text-gray-600">{results.results.overview.dataCoverageDays} days</p>
+                          </div>
+                          <div>
+                            <p className="font-medium">Total Rows</p>
+                            <p className="text-gray-600">{results.results.overview.totalRows}</p>
+                          </div>
+                          <div>
+                            <p className="font-medium">Partners</p>
+                            <p className="text-gray-600">{results.results.overview.partners.join(', ')}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Forecast</h3>
+                        <div className="space-y-2">
+                          <p className="font-medium">Next 7 Days Prediction</p>
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr>
+                                  <th className="text-left">Date</th>
+                                  <th className="text-right">Predicted</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {results.results.forecast.nextSevenDays.map((day: any) => (
+                                  <tr key={day.date}>
+                                    <td>{day.date}</td>
+                                    <td className="text-right">{day.predicted}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
