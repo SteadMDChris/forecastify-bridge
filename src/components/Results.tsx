@@ -7,7 +7,7 @@ import { ForecastChart } from "./ForecastChart";
 import { ModelResults, ModelResultsRow } from "@/types/forecast";
 
 export function Results() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<ModelResultsRow | null, Error>({
     queryKey: ['model_results'],
     queryFn: async () => {
       console.log('Fetching results...');
@@ -20,12 +20,21 @@ export function Results() {
 
       if (error) throw error;
       console.log('Fetched data:', data);
-      return data as ModelResultsRow | null;
+
+      if (!data) return null;
+
+      // Ensure the results match our expected type
+      const typedData: ModelResultsRow = {
+        ...data,
+        results: data.results as ModelResults
+      };
+
+      return typedData;
     },
-    refetchInterval: (data) => {
-      if (!data) return false;
+    refetchInterval: (query) => {
+      if (!query.data) return false;
       // If the status is 'processing', refetch every 5 seconds
-      return data.status === 'processing' ? 5000 : false;
+      return query.data.status === 'processing' ? 5000 : false;
     }
   });
 
