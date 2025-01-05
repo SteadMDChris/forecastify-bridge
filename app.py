@@ -7,6 +7,10 @@ import xlsxwriter
 
 app = Flask(__name__)
 
+@app.route('/health')
+def health_check():
+    return 'Python service is running'
+
 def zero_fill_and_aggregate(df, program_col, state_col, unique_id_col):
     # Build an hourly range
     start_date = df["timestamp"].min().floor("h")

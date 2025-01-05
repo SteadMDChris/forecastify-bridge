@@ -6,84 +6,89 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const PYTHON_SERVICE_URL = 'https://forecastify-bridge.onrender.com'
+
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { fileUrl } = await req.json()
-    console.log('Processing file:', fileUrl)
+    // Test endpoint
+    if (req.method === 'GET') {
+      console.log('Testing connection to Python service...')
+      
+      try {
+        const response = await fetch(`${PYTHON_SERVICE_URL}/health`)
+        const data = await response.text()
+        
+        console.log('Python service response:', data)
+        
+        return new Response(
+          JSON.stringify({ status: 'ok', message: 'Connection successful', serviceResponse: data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } catch (error) {
+        console.error('Error connecting to Python service:', error)
+        return new Response(
+          JSON.stringify({ 
+            status: 'error', 
+            message: 'Failed to connect to Python service',
+            error: error.message 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500
+          }
+        )
+      }
+    }
 
-    const pythonServiceUrl = 'https://forecastify-bridge.onrender.com'
-    console.log('Connecting to Python service at:', pythonServiceUrl)
-    
+    const { fileUrl } = await req.json()
+    console.log('Processing file for model:', fileUrl)
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Download the file from storage
-    const { data: fileData, error: downloadError } = await supabase
+    // Get the model results
+    const { data: modelResult, error: fetchError } = await supabase
+      .from('model_results')
+      .select('results')
+      .eq('input_file_path', fileUrl)
+      .single()
+
+    if (fetchError) {
+      throw new Error(`Error fetching results: ${fetchError.message}`)
+    }
+
+    // Generate Excel file content (mock implementation)
+    const excelContent = new Uint8Array([/* Excel file bytes would go here */])
+    const fileName = `forecast_${Date.now()}.xlsx`
+
+    // Upload Excel file to storage
+    const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from('model-inputs')
-      .download(fileUrl)
-
-    if (downloadError) {
-      throw new Error(`Error downloading file: ${downloadError.message}`)
-    }
-
-    // Convert the file to text
-    const fileContent = await fileData.text()
-    
-    // Test connection to Python service
-    try {
-      const testResponse = await fetch(pythonServiceUrl + '/health', {
-        method: 'GET',
+      .upload(`excel/${fileName}`, excelContent.buffer, {
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        upsert: false
       })
-      
-      if (!testResponse.ok) {
-        throw new Error(`Python service health check failed: ${testResponse.statusText}`)
-      }
-      
-      console.log('Successfully connected to Python service')
-    } catch (error) {
-      console.error('Failed to connect to Python service:', error)
-      throw new Error(`Cannot connect to Python service: ${error.message}`)
-    }
-    
-    // Send to Python service for processing
-    console.log('Sending data to Python service for processing')
-    const response = await fetch(pythonServiceUrl + '/process', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ fileContent })
-    })
 
-    if (!response.ok) {
-      throw new Error(`Python service error: ${response.statusText}`)
+    if (uploadError) {
+      throw new Error(`Error uploading Excel file: ${uploadError.message}`)
     }
 
-    const processingResult = await response.json()
-    console.log('Received processing results from Python service')
-
-    // Update the model_results table
-    const { error: updateError } = await supabase
-      .from('model_results')
-      .update({ 
-        status: 'completed',
-        results: processingResult.data
-      })
-      .eq('input_file_path', fileUrl)
-
-    if (updateError) {
-      throw new Error(`Error updating results: ${updateError.message}`)
-    }
+    // Get download URL
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('model-inputs')
+      .getPublicUrl(`excel/${fileName}`)
 
     return new Response(
-      JSON.stringify({ success: true, results: processingResult.data }),
+      JSON.stringify({ success: true, downloadUrl: publicUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
