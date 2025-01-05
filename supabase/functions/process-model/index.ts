@@ -35,6 +35,14 @@ serve(async (req) => {
 
     if (fileError) {
       console.error('Edge Function: Error downloading file:', fileError);
+      // Update status to error
+      await supabase
+        .from('model_results')
+        .update({ 
+          status: 'error',
+          results: { error: fileError.message }
+        })
+        .eq('input_file_path', fileUrl)
       throw new Error(`Error downloading file: ${fileError.message}`)
     }
 
@@ -60,6 +68,16 @@ serve(async (req) => {
     if (!pythonResponse.ok) {
       const errorText = await pythonResponse.text()
       console.error('Edge Function: Python service error:', errorText);
+      
+      // Update status to error
+      await supabase
+        .from('model_results')
+        .update({ 
+          status: 'error',
+          results: { error: errorText }
+        })
+        .eq('input_file_path', fileUrl)
+        
       throw new Error(`Python service error: ${pythonResponse.status} ${errorText}`)
     }
 
@@ -71,7 +89,7 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from('model_results')
       .update({ 
-        results: results,
+        results: results.data,
         status: 'completed'
       })
       .eq('input_file_path', fileUrl)
