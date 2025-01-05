@@ -66,8 +66,19 @@ export function Results() {
     );
   }
 
-  // Show processing state
-  if (data?.status === 'processing') {
+  // If no data exists yet, show upload prompt
+  if (!data) {
+    return (
+      <Alert>
+        <AlertDescription>
+          No results available yet. Please upload a file to start the analysis.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Show processing state only if status is explicitly 'processing'
+  if (data.status === 'processing') {
     return (
       <Alert>
         <AlertDescription>
@@ -77,12 +88,23 @@ export function Results() {
     );
   }
 
-  // Check if we have valid results data
-  if (!data?.results?.overview || !data?.results?.forecast?.nextSevenDays) {
+  // Show error state if status is 'error'
+  if (data.status === 'error') {
     return (
-      <Alert>
+      <Alert variant="destructive">
         <AlertDescription>
-          No results available yet. Please upload a file to start the analysis.
+          An error occurred while processing your data. Please try uploading again.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Check if we have valid results data for completed status
+  if (!data.results?.overview || !data.results?.forecast?.nextSevenDays) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          The results data appears to be incomplete. Please try uploading your file again.
         </AlertDescription>
       </Alert>
     );
