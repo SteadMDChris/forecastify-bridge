@@ -15,90 +15,84 @@ serve(async (req) => {
   }
 
   try {
-    // Test endpoint
-    if (req.method === 'GET') {
-      console.log('Testing connection to Python service...')
-      
-      try {
-        const response = await fetch(`${PYTHON_SERVICE_URL}/health`)
-        const data = await response.text()
-        
-        console.log('Python service response:', data)
-        
-        return new Response(
-          JSON.stringify({ status: 'ok', message: 'Connection successful', serviceResponse: data }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      } catch (error) {
-        console.error('Error connecting to Python service:', error)
-        return new Response(
-          JSON.stringify({ 
-            status: 'error', 
-            message: 'Failed to connect to Python service',
-            error: error.message 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500
-          }
-        )
-      }
-    }
-
     const { fileUrl } = await req.json()
-    console.log('Processing file for model:', fileUrl)
+    console.log('Processing file:', fileUrl)
 
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the model results
-    const { data: modelResult, error: fetchError } = await supabase
+    // Get the file content from storage
+    const { data: fileData, error: fileError } = await supabase
+      .storage
+      .from('model-inputs')
+      .download(fileUrl)
+
+    if (fileError) {
+      console.error('Error downloading file:', fileError)
+      throw new Error(`Error downloading file: ${fileError.message}`)
+    }
+
+    // Convert file content to text
+    const fileContent = await fileData.text()
+
+    // Call Python service
+    console.log('Calling Python service...')
+    const pythonResponse = await fetch(`${PYTHON_SERVICE_URL}/process`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fileContent }),
+    })
+
+    if (!pythonResponse.ok) {
+      const errorText = await pythonResponse.text()
+      console.error('Python service error:', errorText)
+      throw new Error(`Python service error: ${pythonResponse.status} ${errorText}`)
+    }
+
+    const results = await pythonResponse.json()
+    console.log('Python service response:', results)
+
+    // Update model results
+    const { error: updateError } = await supabase
       .from('model_results')
-      .select('results')
-      .eq('input_file_path', fileUrl)
-      .single()
-
-    if (fetchError) {
-      throw new Error(`Error fetching results: ${fetchError.message}`)
-    }
-
-    // Generate Excel file content (mock implementation)
-    const excelContent = new Uint8Array([/* Excel file bytes would go here */])
-    const fileName = `forecast_${Date.now()}.xlsx`
-
-    // Upload Excel file to storage
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('model-inputs')
-      .upload(`excel/${fileName}`, excelContent.buffer, {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        upsert: false
+      .update({ 
+        results: results,
+        status: 'completed'
       })
+      .eq('input_file_path', fileUrl)
 
-    if (uploadError) {
-      throw new Error(`Error uploading Excel file: ${uploadError.message}`)
+    if (updateError) {
+      console.error('Error updating results:', updateError)
+      throw new Error(`Error updating results: ${updateError.message}`)
     }
-
-    // Get download URL
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('model-inputs')
-      .getPublicUrl(`excel/${fileName}`)
 
     return new Response(
-      JSON.stringify({ success: true, downloadUrl: publicUrl }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, data: results }),
+      { 
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        } 
+      }
     )
 
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in process-model function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error.message || 'An unexpected error occurred'
+      }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     )
   }
