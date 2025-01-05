@@ -12,6 +12,10 @@ const Login = () => {
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in."
+        });
         navigate("/");
       }
       
@@ -51,6 +55,7 @@ const Login = () => {
           }}
           theme="light"
           providers={[]}
+          redirectTo={window.location.origin}
         />
       </div>
     </div>
