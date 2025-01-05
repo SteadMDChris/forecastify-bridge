@@ -46,7 +46,6 @@ const App = () => (
               </ProtectedRoute>
             }
           />
-          {/* Catch all undefined routes and redirect to login */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
