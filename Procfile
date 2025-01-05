@@ -1,1 +1,1 @@
-web: pip install -r requirements.txt && pip install gunicorn && python -m gunicorn app:app
+web: pip install -r requirements.txt && pip install gunicorn && python -m gunicorn app:app --timeout 120
